@@ -21,9 +21,3 @@ spring:
       hostname: localhost
       instance-id: "${spring.application.name}:${random.value}" # уникальный ID конкретного экземпляра сервиса
       lease-renewal-interval-in-seconds: 10 # interval health checkов в eureka
-
-#management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: health,info,mappings # для просмотра routes
