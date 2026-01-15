@@ -1,6 +1,7 @@
 package client;
 
 import exception.StatsServerUnavailable;
+import lombok.RequiredArgsConstructor;
 import model.EndpointHitDto;
 import model.ViewStatsDto;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,22 +16,24 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 //TODO
-// 1. Перенести проект сначала в main, проверить что он собирается и работает + перенести папку postman с тестами из предыдущего проекта
-// 2. Настроить проект, чтобы в main сливали только с approve
 // 3. Сделать DiscoveryClient и все требуемые настройки в ветке spring-cloud
 // 3. Сделать PR на main
+// настройка роутов
 
 @Component
+@RequiredArgsConstructor
 public class StatsClient {
-    final RestClient restClient;
-    final DiscoveryClient discoveryClient;
+    private final RestClient restClient;
+    private final DiscoveryClient discoveryClient;
+    private String statsServiceId;
 
-    public StatsClient(RestClient.Builder restClientBuilder,
-                       @Value("${stats.server.url:http://localhost:9090}") String serverUrl) {
-        this.restClient = restClientBuilder
-                .baseUrl(serverUrl)
-                .build();
-    }
+
+//    public StatsClient(RestClient.Builder restClientBuilder,
+//                       @Value("${stats.server.url:http://localhost:9090}") String serverUrl) {
+//        this.restClient = restClientBuilder
+//                .baseUrl(serverUrl)
+//                .build();
+//    }
 
     private StatsClient getInstance() {
         try {
