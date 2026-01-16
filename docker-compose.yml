@@ -1,7 +1,6 @@
-version: '3.8'
 services:
   stats-db:
-    image: postgres:13-alpine
+    image: postgres:16.1
     container_name: ewm_stats_db
     environment:
       POSTGRES_DB: stats
@@ -16,7 +15,7 @@ services:
       retries: 5
 
   main-db:
-    image: postgres:13-alpine
+    image: postgres:16.1
     container_name: ewm_main_db
     environment:
       POSTGRES_DB: main
