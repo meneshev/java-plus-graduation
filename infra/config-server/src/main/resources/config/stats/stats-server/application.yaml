@@ -8,7 +8,7 @@ spring:
     log-startup-info: false
     banner-mode: off
   datasource:
-    url: jdbc:postgresql://localhost:6541/stats
+    url: jdbc:postgresql://stats-db:5432/stats
     username: user
     password: password
     driverClassName: org.postgresql.Driver

@@ -8,7 +8,7 @@ spring:
     log-startup-info: false
     banner-mode: off
   datasource:
-    url: jdbc:postgresql://localhost:6542/main
+    url: jdbc:postgresql://main-db:5432/main
     username: user
     password: password
     driverClassName: org.postgresql.Driver
