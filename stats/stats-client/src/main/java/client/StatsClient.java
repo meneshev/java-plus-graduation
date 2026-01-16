@@ -32,7 +32,7 @@ public class StatsClient {
                 .orElseThrow(() -> new StatsServerUnavailable("Сервис статистики с id: " + statsServiceId
                         + " не найден в реестре"));
 
-        return String.format("http://%s:%d/stats", serviceInstance.getHost(), serviceInstance.getPort());
+        return String.format("http://%s:%d", serviceInstance.getHost(), serviceInstance.getPort());
     }
 
     private RestClient getRestClient() {
