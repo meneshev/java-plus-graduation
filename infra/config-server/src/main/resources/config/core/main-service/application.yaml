@@ -8,7 +8,7 @@ spring:
     log-startup-info: false
     banner-mode: off
   datasource:
-    url: jdbc:postgresql://main-db:5432/main
+    url: jdbc:postgresql://localhost:6542/main
     username: user
     password: password
     driverClassName: org.postgresql.Driver
@@ -16,6 +16,9 @@ spring:
     show-sql: true
   hibernate:
     ddl-auto: update
+  sql:
+    init:
+      mode: always
 
   # Logging
 logging:
