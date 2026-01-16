@@ -12,7 +12,7 @@ spring:
         native:
           search-locations:
             - classpath:config/core/{application}
-            - classpath:config/commerce/{application}
+            - classpath:config/infra/{application}
             - classpath:config/stats/{application}
   eureka:
     client:
