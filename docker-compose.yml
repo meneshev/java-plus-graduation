@@ -28,3 +28,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  main-db-init:
+    image: postgres:16.1
+    container_name: main-db-init
+    depends_on:
+      main-db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: password
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        psql -h localhost -p 5432 -U user -d main -v ON_ERROR_STOP=1 <<-EOSQL
+        CREATE DATABASE ewm_event_db;
+        CREATE DATABASE ewm_event_request_db;
+        CREATE DATABASE ewm_user_db;
+        CREATE DATABASE ewm_extra_func_db;
+        EOSQL
+        echo "Databases created successfully!"

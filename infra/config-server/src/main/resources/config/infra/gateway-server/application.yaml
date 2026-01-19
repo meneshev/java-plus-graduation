@@ -16,6 +16,26 @@ spring:
           predicates:
             - Path=/**
 
+        - id: ewm_event_service_route
+          uri: lb://event-service
+          predicates:
+            - Path=/admin/categories/**, /categories/**, /users/*/events/**, /admin/events/**, /events/**
+
+        - id: ewm_event_request_service_route
+          uri: lb://event-request-service
+          predicates:
+            - Path=/user/*/requests/**
+
+        - id: ewm_user_service_route
+          uri: lb://user-service
+          predicates:
+            - Path=/admin/users/**
+
+        - id: ewm_extra_func_service_route
+          uri: lb://extra-func-service
+          predicates:
+            - Path=/admin/compilations/**, /compilations/**
+
 management:
   endpoints:
     web:
