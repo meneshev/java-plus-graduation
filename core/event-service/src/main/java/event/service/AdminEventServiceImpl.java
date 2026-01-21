@@ -1,8 +1,8 @@
 package event.service;
 
-import dto.AdminEventSearchRequest;
-import dto.EventFullDto;
-import dto.UpdateEventAdminRequest;
+import dto.event.AdminEventSearchRequest;
+import dto.event.EventFullDto;
+import dto.event.UpdateEventAdminRequest;
 import event.dal.entity.Event;
 import event.dal.entity.EventState;
 import event.dal.entity.StateAction;

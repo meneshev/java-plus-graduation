@@ -1,6 +1,8 @@
 package event.dal.mapper;
 
-import dto.*;
+import dto.category.CategoryDto;
+import dto.event.*;
+import event.dal.entity.Category;
 import event.dal.entity.Event;
 import event.dal.entity.EventLocation;
 import org.mapstruct.*;

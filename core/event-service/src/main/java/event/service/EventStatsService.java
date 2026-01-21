@@ -1,8 +1,8 @@
 package event.service;
 
 import client.StatsClient;
-import dto.EventFullDto;
-import dto.EventShortDto;
+import dto.event.EventFullDto;
+import dto.event.EventShortDto;
 import event.dal.entity.Event;
 import event.dal.mapper.EventMapper;
 import event.dal.repository.EventRepository;

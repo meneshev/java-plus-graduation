@@ -1,6 +1,6 @@
 package event.service;
 
-import dto.*;
+import dto.event.*;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;

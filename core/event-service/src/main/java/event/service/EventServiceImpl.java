@@ -1,6 +1,6 @@
 package event.service;
 
-import dto.*;
+import dto.event.*;
 import event.dal.entity.Event;
 import event.dal.entity.EventState;
 import event.dal.entity.StateAction;

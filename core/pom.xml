@@ -12,11 +12,10 @@
     <artifactId>core</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>main-service</module>
         <module>event-service</module>
-        <module>event-request-service</module>
         <module>user-service</module>
-        <module>extra-func-service</module>
         <module>ewm-common</module>
+        <module>request-service</module>
+        <module>comment-service</module>
     </modules>
 </project>

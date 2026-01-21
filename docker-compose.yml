@@ -44,8 +44,8 @@ services:
         set -e
         psql -h localhost -p 5432 -U user -d main -v ON_ERROR_STOP=1 <<-EOSQL
         CREATE DATABASE ewm_event_db;
-        CREATE DATABASE ewm_event_request_db;
+        CREATE DATABASE ewm_request_db;
         CREATE DATABASE ewm_user_db;
-        CREATE DATABASE ewm_extra_func_db;
+        CREATE DATABASE ewm_comment_db;
         EOSQL
         echo "Databases created successfully!"
