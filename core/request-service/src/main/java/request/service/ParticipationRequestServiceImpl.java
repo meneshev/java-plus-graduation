@@ -1,9 +1,12 @@
 package request.service;
 
 
+import dto.event.EventFullDto;
 import dto.request.EventRequestStatusUpdateRequest;
 import dto.request.EventRequestStatusUpdateResult;
 import dto.request.ParticipationRequestDto;
+import feign.event.EventClient;
+import feign.user.UserClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,14 +30,13 @@ import java.util.stream.Collectors;
 public class ParticipationRequestServiceImpl implements ParticipationRequestService {
 
     private final ParticipationRequestRepository requestRepository;
-    private final UserRepository userRepository;
-    private final EventRepository eventRepository;
+    private final UserClient userClient;
+    private final EventClient eventClient;
     private final ParticipationRequestMapper requestMapper;
-    private final EventStatsService eventStatsService;
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
-        if (!userRepository.existsById(userId)) {
+        if (userClient.getById(userId) == null) {
             throw new NotFoundException("Пользователь с id = " + userId + " не найден");
         }
 
@@ -48,8 +50,11 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
     public ParticipationRequestDto createRequest(Long userId, Long eventId) {
         log.info("Создание запроса для пользователя с id: {} на событие с id: {}", userId, eventId);
 
-        Event event = eventRepository.findByIdWithInitiator(eventId)
-                .orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
+        EventFullDto event = eventClient.getById(eventId);
+
+        if (event == null) {
+            throw new NotFoundException("Событие с id=" + eventId + " не найдено");
+        }
 
         if (event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Нельзя участвовать в собственном событии");
@@ -63,7 +68,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
             throw new ConflictException("Запрос на участие в этом событии уже существует");
         }
 
-        Map<Long, Long> confirmedRequestsMap = eventStatsService.getConfirmedRequestsBatch(List.of(eventId));
+        Map<Long, Long> confirmedRequestsMap = eventClient.getConfirmedRequestsBatchByEventIds(List.of(eventId));
         Long confirmedRequests = confirmedRequestsMap.getOrDefault(eventId, 0L);
 
         if (event.getParticipantLimit() > 0 && confirmedRequests >= event.getParticipantLimit()) {
@@ -71,17 +76,15 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
         }
 
         RequestStatus status;
-        if (!event.getIsRequestModeration() || event.getParticipantLimit() == 0) {
+        if (!event.getRequestModeration() || event.getParticipantLimit() == 0) {
             status = RequestStatus.CONFIRMED;
         } else {
             status = RequestStatus.PENDING;
         }
 
-        User userProxy = userRepository.getReferenceById(userId);
-
         ParticipationRequest request = ParticipationRequest.builder()
-                .requester(userProxy)
-                .event(event)
+                .requester(userId)
+                .event(eventId)
                 .created(LocalDateTime.now())
                 .status(status)
                 .build();
@@ -98,8 +101,11 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
                                                               EventRequestStatusUpdateRequest request) {
         log.info("Изменение статуса запросов для события с id: {} от пользователя с id: {}", eventId, userId);
 
-        Event event = eventRepository.findByIdWithInitiator(eventId)
-                .orElseThrow(() -> new NotFoundException("Событие с id = " + eventId + " не найдено"));
+        EventFullDto event = eventClient.getById(eventId);
+
+        if (event == null) {
+            throw new NotFoundException("Событие с id = " + eventId + " не найдено");
+        }
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Пользователь не является инициатором события");
@@ -130,7 +136,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
         List<ParticipationRequestDto> confirmedRequests = new ArrayList<>();
         List<ParticipationRequestDto> rejectedRequests = new ArrayList<>();
 
-        Map<Long, Long> confirmedRequestsMap = eventStatsService.getConfirmedRequestsBatch(List.of(eventId));
+        Map<Long, Long> confirmedRequestsMap = eventClient.getConfirmedRequestsBatchByEventIds(List.of(eventId));
         Long currentConfirmedCount = confirmedRequestsMap.getOrDefault(eventId, 0L);
 
         int participantLimit = event.getParticipantLimit() != null ? event.getParticipantLimit() : 0;
@@ -142,7 +148,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
                         participationRequest.getStatus());
             }
 
-            if (!participationRequest.getEvent().getId().equals(eventId)) {
+            if (!participationRequest.getEvent().equals(eventId)) {
                 throw new ConflictException("Запрос с id = " + participationRequest.getId() +
                         " не принадлежит событию с id = " + eventId);
             }
@@ -186,8 +192,11 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
     @Override
     public List<ParticipationRequestDto> getRequestsByEvent(Long userId, Long eventId) {
-        Event event = eventRepository.findByIdWithInitiator(eventId)
-                .orElseThrow(() -> new NotFoundException("Событие с id = " + eventId + " не найдено"));
+        EventFullDto event = eventClient.getById(eventId);
+
+        if (event == null) {
+            throw new NotFoundException("Событие с id = " + eventId + " не найдено");
+        }
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Пользователь не является инициатором события");

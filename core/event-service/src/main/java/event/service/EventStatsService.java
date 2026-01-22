@@ -3,9 +3,11 @@ package event.service;
 import client.StatsClient;
 import dto.event.EventFullDto;
 import dto.event.EventShortDto;
+import dto.request.EventConfirmedRequestsDto;
 import event.dal.entity.Event;
 import event.dal.mapper.EventMapper;
 import event.dal.repository.EventRepository;
+import feign.request.RequestClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import model.EndpointHitDto;
@@ -25,7 +27,7 @@ public class EventStatsService {
     private static final String APP_NAME = "ewm-main-service";
 
     private final StatsClient statsClient;
-    private final ParticipationRequestRepository requestRepository;
+    private final RequestClient requestClient;
     private final EventRepository eventRepository;
 
     public Map<Long, Long> getViewsForEventsBatch(List<Long> eventIds) {
@@ -72,7 +74,7 @@ public class EventStatsService {
             return Map.of();
         }
 
-        List<EventConfirmedRequestsDto> results = requestRepository.findConfirmedRequestsCountByEventIds(eventIds);
+        List<EventConfirmedRequestsDto> results = requestClient.getRequestsByEventIds(eventIds);
 
         Map<Long, Long> confirmedRequestsMap = eventIds.stream()
                 .collect(Collectors.toMap(id -> id, id -> 0L));

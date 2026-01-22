@@ -30,9 +30,8 @@ public class Event {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "initiator_id")
-    private User initiator;
+    @Column(name = "initiator_id", nullable = false)
+    private Long initiator;
 
     @Column(name = "created_on", nullable = false)
     private LocalDateTime createdAt;

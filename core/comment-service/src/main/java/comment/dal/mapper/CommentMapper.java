@@ -16,7 +16,7 @@ public interface CommentMapper {
     @Mapping(target = "updatedDate", ignore = true)
     @Mapping(target = "isEdited", ignore = true)
     @Mapping(target = "isDeleted", ignore = true)
-    Comment toComment(NewCommentDto newCommentDto, User author, Event event);
+    Comment toComment(NewCommentDto newCommentDto, Long author, Long event);
 
     @Mapping(target = "eventId", source = "event.id")
     CommentDto toDto(Comment comment);

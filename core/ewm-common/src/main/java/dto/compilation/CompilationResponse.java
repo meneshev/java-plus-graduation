@@ -1,6 +1,6 @@
 package dto.compilation;
 
-import ewm.event.dto.EventShortDto;
+import dto.event.EventShortDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

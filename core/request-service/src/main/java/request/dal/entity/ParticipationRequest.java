@@ -17,13 +17,11 @@ public class ParticipationRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn (name = "event_id")
-    private Event event;
+    @JoinColumn (name = "event_id", nullable = false)
+    private Long event;
 
-    @ManyToOne
-    @JoinColumn (name = "requester_id")
-    private User requester;
+    @Column (name = "requester_id", nullable = false)
+    private Long requester;
 
     private LocalDateTime created;
 

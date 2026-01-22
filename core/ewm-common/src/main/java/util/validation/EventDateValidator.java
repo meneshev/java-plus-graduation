@@ -1,6 +1,5 @@
 package util.validation;
 
-import ewm.util.validation.ValidEventDate;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 

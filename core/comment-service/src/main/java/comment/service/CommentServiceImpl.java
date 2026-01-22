@@ -2,9 +2,13 @@ package comment.service;
 
 import comment.dal.entity.Comment;
 import comment.dal.mapper.CommentMapper;
+import comment.dal.repository.CommentRepository;
 import dto.comment.CommentDto;
 import dto.comment.NewCommentDto;
 import dto.comment.UpdateCommentDto;
+import dto.event.EventFullDto;
+import feign.event.EventClient;
+import feign.user.UserClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -23,8 +27,8 @@ import java.util.stream.Collectors;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
-    private final EventRepository eventRepository;
-    private final UserService userService;
+    private final EventClient eventClient;
+    private final UserClient userClient;
     private final CommentMapper commentMapper;
 
     @Override
@@ -32,12 +36,12 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto createComment(Long userId, Long eventId, NewCommentDto newCommentDto) {
         log.debug("Создание нового комментария: userId={}, eventId={}", userId, eventId);
 
-        User author = userService.getUserEntityById(userId);
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> {
-                    log.warn("Попытка создания комментария к несуществующему событию: eventId={}", eventId);
-                    return new NotFoundException("Событие не найдено");
-                });
+        EventFullDto event = eventClient.getById(eventId);
+
+        if (event == null) {
+            log.warn("Попытка создания комментария к несуществующему событию: eventId={}", eventId);
+            throw new NotFoundException("Событие не найдено");
+        }
 
         if (!"PUBLISHED".equals(event.getState())) {
             log.warn("Попытка создания комментария к неопубликованному событию: eventId={}, state={}",
@@ -45,7 +49,7 @@ public class CommentServiceImpl implements CommentService {
             throw new ConflictException("Невозможно прокомментировать неопубликованное событие");
         }
 
-        Comment comment = commentMapper.toComment(newCommentDto, author, event);
+        Comment comment = commentMapper.toComment(newCommentDto, userId, eventId);
         Comment savedComment = commentRepository.save(comment);
 
         log.info("Создан новый комментарий: ID={}, authorId={}, eventId={}",
@@ -120,7 +124,7 @@ public class CommentServiceImpl implements CommentService {
         log.debug("Получение комментариев для события: eventId={}, page={}, size={}",
                 eventId, pageable.getPageNumber(), pageable.getPageSize());
 
-        if (!eventRepository.existsById(eventId)) {
+        if (eventClient.getById(eventId) == null) {
             log.warn("Попытка получения комментариев для несуществующего события: eventId={}", eventId);
             throw new NotFoundException("Событие не найдено");
         }
@@ -137,7 +141,7 @@ public class CommentServiceImpl implements CommentService {
         log.debug("Получение комментариев пользователя: userId={}, page={}, size={}",
                 userId, pageable.getPageNumber(), pageable.getPageSize());
 
-        userService.getUserById(userId);
+        userClient.getById(userId);
 
         return commentRepository.findByAuthorIdAndIsDeletedFalse(userId, pageable)
                 .stream()

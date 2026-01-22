@@ -1,4 +1,4 @@
-package event.dal.entity;
+package enums;
 
 public enum StateAction {
     SEND_TO_REVIEW,

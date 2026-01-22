@@ -2,6 +2,7 @@ package event.dal.mapper;
 
 import dto.category.CategoryDto;
 import dto.event.*;
+import dto.user.UserShortDto;
 import event.dal.entity.Category;
 import event.dal.entity.Event;
 import event.dal.entity.EventLocation;

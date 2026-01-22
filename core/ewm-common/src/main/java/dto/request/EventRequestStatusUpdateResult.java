@@ -1,6 +1,5 @@
 package dto.request;
 
-import ewm.participationRequest.dto.ParticipationRequestDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

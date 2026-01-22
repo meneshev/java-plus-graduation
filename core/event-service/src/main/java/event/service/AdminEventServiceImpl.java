@@ -5,7 +5,7 @@ import dto.event.EventFullDto;
 import dto.event.UpdateEventAdminRequest;
 import event.dal.entity.Event;
 import event.dal.entity.EventState;
-import event.dal.entity.StateAction;
+import enums.StateAction;
 import event.dal.mapper.EventMapper;
 import event.dal.repository.EventRepository;
 import event.dal.repository.specification.EventSpecifications;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import util.exception.ConflictException;
 import util.exception.NotFoundException;
-import util.validation.EventValidationUtils;
+import event.validation.EventValidationUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -136,4 +136,6 @@ public class AdminEventServiceImpl implements AdminEventService {
             throw new ConflictException("Событие можно отклонить, только если оно еще не опубликовано");
         }
     }
+
+    //TODO enrich from ohter services
 }

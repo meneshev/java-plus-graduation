@@ -1,12 +1,12 @@
 package dto.event;
 
-import ewm.event.model.EventSort;
-import ewm.util.validation.ValidEnum;
+import enums.EventSort;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import util.validation.ValidEnum;
 
 import java.time.LocalDateTime;
 import java.util.List;

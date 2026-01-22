@@ -1,15 +1,14 @@
 package dto.event;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import ewm.event.dto.LocationDto;
-import ewm.event.model.StateAction;
-import ewm.util.validation.ValidEnum;
+import enums.StateAction;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import util.validation.ValidEnum;
 
 import java.time.LocalDateTime;
 

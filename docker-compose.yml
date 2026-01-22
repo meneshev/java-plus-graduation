@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     ports:
-      - "6541:5432"
+      - "6543:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U user -d stats" ]
       interval: 10s
@@ -42,7 +42,7 @@ services:
       - -c
       - |
         set -e
-        psql -h localhost -p 5432 -U user -d main -v ON_ERROR_STOP=1 <<-EOSQL
+        psql -h main-db -p 5432 -U user -d main -v ON_ERROR_STOP=1 <<-EOSQL
         CREATE DATABASE ewm_event_db;
         CREATE DATABASE ewm_request_db;
         CREATE DATABASE ewm_user_db;

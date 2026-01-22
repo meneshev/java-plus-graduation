@@ -8,8 +8,8 @@ import request.dal.entity.ParticipationRequest;
 @Mapper(componentModel = "spring")
 public interface ParticipationRequestMapper {
 
-    @Mapping(source = "event.id", target = "event")
-    @Mapping(source = "requester.id", target = "requester")
+    @Mapping(source = "event", target = "event")
+    @Mapping(source = "requester", target = "requester")
     @Mapping(source = "status", target = "status")
     ParticipationRequestDto toDto(ParticipationRequest request);
 }

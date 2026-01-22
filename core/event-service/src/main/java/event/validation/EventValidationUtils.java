@@ -1,8 +1,9 @@
-package util.validation;
+package event.validation;
 
-import ewm.event.model.Event;
-import ewm.event.model.EventState;
-import ewm.exception.ConflictException;
+
+import event.dal.entity.Event;
+import event.dal.entity.EventState;
+import util.exception.ConflictException;
 
 import java.time.LocalDateTime;
 

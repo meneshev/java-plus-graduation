@@ -22,13 +22,11 @@ public class Comment {
     @Column(nullable = false, length = 2000)
     private String text;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "author_id", nullable = false)
-    private User author; //TODO userID
+    @Column(name = "author_id", nullable = false)
+    private Long author; //TODO userID
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    @Column(name = "event_id", nullable = false)
+    private Long event;
 
     @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)

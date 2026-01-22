@@ -3,10 +3,11 @@ package event.service;
 import dto.event.*;
 import event.dal.entity.Event;
 import event.dal.entity.EventState;
-import event.dal.entity.StateAction;
+import enums.StateAction;
 import event.dal.mapper.EventMapper;
 import event.dal.repository.EventRepository;
 import event.dal.repository.specification.EventSpecifications;
+import feign.user.UserClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,7 +17,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import util.exception.NotFoundException;
-import util.validation.EventValidationUtils;
+import event.validation.EventValidationUtils;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -31,13 +32,13 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
-    private final UserService userService;
+    private final UserClient userClient;
     private final EventStatsService eventStatsService;
 
     @Override
     @Transactional(readOnly = true)
     public List<EventShortDto> getEvents(Long userId, Pageable pageable) {
-        userService.getUserById(userId);
+        userClient.getById(userId);
         Page<Event> eventsPage = eventRepository.findAllByInitiatorIdOrderByCreatedAtDesc(userId, pageable);
 
         return eventStatsService.enrichEventsShortDtoBatch(eventsPage.getContent(), eventMapper);
@@ -46,7 +47,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public EventFullDto getEvent(Long userId, Long eventId, String ip) {
-        userService.getUserById(userId);
+        userClient.getById(userId);
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
@@ -59,10 +60,9 @@ public class EventServiceImpl implements EventService {
     public EventFullDto createEvent(Long userId, NewEventDto newEventDto) {
         EventValidationUtils.validateEventDate(newEventDto.getEventDate(), 2);
 
-        User user = userService.getUserEntityById(userId);
         Event event = eventMapper.toEvent(newEventDto);
 
-        event.setInitiator(user);
+        event.setInitiator(userId);
         event.setCreatedAt(LocalDateTime.now());
         event.setState(EventState.PENDING.toString());
 
@@ -77,7 +77,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
-        userService.getUserById(userId);
+        userClient.getById(userId);
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
@@ -118,6 +118,15 @@ public class EventServiceImpl implements EventService {
         eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
         return eventStatsService.enrichEventFullDto(event, eventMapper);
     }
+
+    @Override
+    public EventFullDto getEventById(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event not found"));
+
+        return eventStatsService.enrichEventFullDto(event, eventMapper);
+    }
+
 
     private Specification<Event> buildPublicEventsSpecification(PublicEventSearchRequest params) {
         Specification<Event> spec = Specification.where(EventSpecifications.isPublished());
