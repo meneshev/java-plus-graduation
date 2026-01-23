@@ -11,15 +11,15 @@ spring:
     gateway:
       discovery.locator.enabled: true # использование Discovery Service
       routes:
+        - id: ewm_request_service_route
+          uri: lb://request-service
+          predicates:
+            - Path=/users/*/requests/**, /users/*/events/*/requests/**
+
         - id: ewm_event_service_route
           uri: lb://event-service
           predicates:
             - Path=/admin/categories/**, /categories/**, /users/*/events/**, /admin/events/**, /events/**, /admin/compilations/**, /compilations/**
-
-        - id: ewm_request_service_route
-          uri: lb://request-service
-          predicates:
-            - Path=/user/*/requests/**
 
         - id: ewm_user_service_route
           uri: lb://user-service
