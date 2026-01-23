@@ -16,6 +16,6 @@ public interface EventOperations {
     @GetMapping
     Set<EventFullDto> getByIds(@RequestParam("ids") Set<Long> ids);
 
-    @GetMapping
+    @GetMapping("/confirmed")
     Map<Long, Long> getConfirmedRequestsBatchByEventIds(@RequestParam("eventIds") List<Long> eventIds);
 }

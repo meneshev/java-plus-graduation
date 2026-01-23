@@ -5,8 +5,7 @@ import event.service.EventService;
 import event.service.EventStatsService;
 import feign.event.EventOperations;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,8 @@ public class InnerEventController implements EventOperations {
     private final EventStatsService eventStatsService;
 
     @Override
-    public EventFullDto getById(Long id) {
+    @GetMapping("/{id}")
+    public EventFullDto getById(@PathVariable("id") Long id) {
         return eventService.getEventById(id);
     }
 
@@ -30,7 +30,8 @@ public class InnerEventController implements EventOperations {
     }
 
     @Override
-    public Map<Long, Long> getConfirmedRequestsBatchByEventIds(List<Long> eventIds) {
+    @GetMapping("/confirmed")
+    public Map<Long, Long> getConfirmedRequestsBatchByEventIds(@RequestParam("eventIds")  List<Long> eventIds) {
         return eventStatsService.getConfirmedRequestsBatch(eventIds);
     }
 }

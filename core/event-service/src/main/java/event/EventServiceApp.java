@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"event", "util", "client"}) // для логирования через AOP
-@EnableFeignClients(basePackages = {"feign.request"}, clients = {UserClient.class})
+@EnableFeignClients(basePackages = {"feign.request", "feign.user"})
 public class EventServiceApp {
     public static void main(String[] args) {
         SpringApplication.run(EventServiceApp.class, args);
