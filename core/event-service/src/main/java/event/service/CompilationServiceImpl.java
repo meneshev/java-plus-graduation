@@ -3,9 +3,11 @@ package event.service;
 import dto.compilation.CompilationResponse;
 import dto.compilation.NewCompilationRequest;
 import dto.compilation.UpdateCompilationRequest;
+import dto.event.EventShortDto;
 import event.dal.entity.Compilation;
 import event.dal.entity.Event;
 import event.dal.mapper.CompilationMapper;
+import event.dal.mapper.EventMapper;
 import event.dal.repository.CompilationRepository;
 import event.dal.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import util.exception.NotFoundException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +36,7 @@ public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
+    private final EventStatsService eventStatsService;
 
     @Override
     @Transactional
@@ -40,15 +44,17 @@ public class CompilationServiceImpl implements CompilationService {
         log.debug("Создание новой компиляции: title={}", request.getTitle());
 
         Compilation compilation = compilationMapper.toEntity(request);
-
+        List<Long> eventIds = new ArrayList<>();
         if (request.getEvents() != null && !request.getEvents().isEmpty()) {
-            List<Event> events = eventRepository.findAllById(new ArrayList<>(request.getEvents()));
+            List<Long> events = eventRepository.findAllById(new ArrayList<>(request.getEvents())).stream()
+                    .map(Event::getId).toList();
 
             if (events.size() != request.getEvents().size()) {
                 log.warn("Не все события найдены при создании компиляции: requested={}, found={}",
                         request.getEvents().size(), events.size());
                 throw new NotFoundException("Некоторые события не найдены");
             }
+            eventIds.addAll(events);
             compilation.setEvents(new HashSet<>(events));
             log.debug("Добавлено событий в компиляцию: {}", events.size());
         } else {
@@ -60,7 +66,10 @@ public class CompilationServiceImpl implements CompilationService {
             log.info("Создана новая компиляция: ID={}, title={}, событий={}",
                     savedCompilation.getId(), savedCompilation.getTitle(), savedCompilation.getEvents().size());
 
-            return compilationMapper.toDto(savedCompilation);
+            Set<EventShortDto> events = eventRepository.findAllById(eventIds).stream()
+                    .map(event ->  eventStatsService.enrichEventShortDto(event, EventMapper.INSTANCE))
+                    .collect(Collectors.toSet());
+            return compilationMapper.toDto(savedCompilation, events);
         } catch (DataIntegrityViolationException e) {
             log.warn("Попытка создания компиляции с существующим названием: {}", request.getTitle());
             throw new ConflictException("Компиляция с названием уже существует: " + request.getTitle());
@@ -88,17 +97,21 @@ public class CompilationServiceImpl implements CompilationService {
             log.debug("Обновлен статус закрепления: {}", request.getPinned());
         }
 
+        List<Long> eventIds = new ArrayList<>();
         if (request.getEvents() != null) {
             if (request.getEvents().isEmpty()) {
                 compilation.setEvents(new HashSet<>());
                 log.debug("Очищены события компиляции");
             } else {
-                List<Event> events = eventRepository.findAllById(new ArrayList<>(request.getEvents()));
+                List<Long> events = eventRepository.findAllById(new ArrayList<>(request.getEvents())).stream()
+                        .map(Event::getId)
+                        .toList();
                 if (events.size() != request.getEvents().size()) {
                     log.warn("Не все события найдены при обновлении компиляции: requested={}, found={}",
                             request.getEvents().size(), events.size());
                     throw new NotFoundException("Некоторые события не найдены");
                 }
+                eventIds.addAll(events);
                 compilation.setEvents(new HashSet<>(events));
                 log.debug("Обновлены события компиляции: количество={}", events.size());
             }
@@ -108,8 +121,10 @@ public class CompilationServiceImpl implements CompilationService {
             Compilation updatedCompilation = compilationRepository.save(compilation);
             log.info("Компиляция обновлена: ID={}, title={}, событий={}",
                     compId, updatedCompilation.getTitle(), updatedCompilation.getEvents().size());
-
-            return compilationMapper.toDto(updatedCompilation);
+            Set<EventShortDto> events = eventRepository.findAllById(eventIds).stream()
+                    .map(event ->  eventStatsService.enrichEventShortDto(event, EventMapper.INSTANCE))
+                    .collect(Collectors.toSet());
+            return compilationMapper.toDto(updatedCompilation, events);
         } catch (DataIntegrityViolationException e) {
             log.warn("Попытка обновления на существующее название: {}", request.getTitle());
             throw new ConflictException("Компиляция с названием уже существует: " + request.getTitle());
@@ -147,7 +162,12 @@ public class CompilationServiceImpl implements CompilationService {
         }
 
         return compilationsPage.getContent().stream()
-                .map(compilationMapper::toDto)
+                .map(compilation -> {
+                    Set<EventShortDto> events = eventRepository.findAllById(compilation.getEvents()).stream()
+                            .map(event -> eventStatsService.enrichEventShortDto(event, EventMapper.INSTANCE))
+                            .collect(Collectors.toSet());
+                    return compilationMapper.toDto(compilation, events);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -155,6 +175,9 @@ public class CompilationServiceImpl implements CompilationService {
     public CompilationResponse getCompilationById(Long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Компиляция с идентификатором не найдена: " + compId));
-        return compilationMapper.toDto(compilation);
+        Set<EventShortDto> events = eventRepository.findAllById(compilation.getEvents()).stream()
+                .map(event -> eventStatsService.enrichEventShortDto(event, EventMapper.INSTANCE))
+                .collect(Collectors.toSet());
+        return compilationMapper.toDto(compilation,  events);
     }
 }

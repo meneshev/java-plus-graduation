@@ -4,10 +4,12 @@ import client.StatsClient;
 import dto.event.EventFullDto;
 import dto.event.EventShortDto;
 import dto.request.EventConfirmedRequestsDto;
+import dto.user.UserShortDto;
 import event.dal.entity.Event;
 import event.dal.mapper.EventMapper;
 import event.dal.repository.EventRepository;
 import feign.request.RequestClient;
+import feign.user.UserClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import model.EndpointHitDto;
@@ -28,6 +30,7 @@ public class EventStatsService {
 
     private final StatsClient statsClient;
     private final RequestClient requestClient;
+    private final UserClient userClient;
     private final EventRepository eventRepository;
 
     public Map<Long, Long> getViewsForEventsBatch(List<Long> eventIds) {
@@ -86,7 +89,19 @@ public class EventStatsService {
     }
 
     public EventFullDto enrichEventFullDto(Event event, EventMapper eventMapper) {
-        EventFullDto dto = eventMapper.toFullDto(event);
+        UserShortDto user = userClient.getById(event.getInitiator());
+        EventFullDto dto = eventMapper.toFullDto(event, user);
+        Map<Long, Long> confirmedRequests = getConfirmedRequestsBatch(List.of(event.getId()));
+        Map<Long, Long> views = getViewsForEventsBatch(List.of(event.getId()));
+
+        dto.setConfirmedRequests(confirmedRequests.getOrDefault(event.getId(), 0L));
+        dto.setViews(views.getOrDefault(event.getId(), 0L));
+        return dto;
+    }
+
+    public EventShortDto enrichEventShortDto(Event event, EventMapper eventMapper) {
+        UserShortDto user = userClient.getById(event.getInitiator());
+        EventShortDto dto = eventMapper.toShortDto(event, user);
         Map<Long, Long> confirmedRequests = getConfirmedRequestsBatch(List.of(event.getId()));
         Map<Long, Long> views = getViewsForEventsBatch(List.of(event.getId()));
 
@@ -117,7 +132,8 @@ public class EventStatsService {
 
         return events.stream()
                 .map(event -> {
-                    EventFullDto dto = eventMapper.toFullDto(event);
+                    UserShortDto user = userClient.getById(event.getInitiator());
+                    EventFullDto dto = eventMapper.toFullDto(event, user);
                     dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
                     dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
                     return dto;
@@ -140,7 +156,8 @@ public class EventStatsService {
 
         return events.stream()
                 .map(event -> {
-                    EventShortDto dto = eventMapper.toShortDto(event);
+                    UserShortDto user = userClient.getById(event.getInitiator());
+                    EventShortDto dto = eventMapper.toShortDto(event, user);
                     dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
                     dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
                     return dto;

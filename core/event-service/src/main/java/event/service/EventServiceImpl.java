@@ -1,6 +1,7 @@
 package event.service;
 
 import dto.event.*;
+import dto.user.UserShortDto;
 import event.dal.entity.Event;
 import event.dal.entity.EventState;
 import enums.StateAction;
@@ -22,6 +23,7 @@ import event.validation.EventValidationUtils;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,7 +70,9 @@ public class EventServiceImpl implements EventService {
 
         Event savedEvent = eventRepository.save(event);
 
-        EventFullDto eventDto = eventMapper.toFullDto(savedEvent);
+        UserShortDto user = userClient.getById(userId);
+
+        EventFullDto eventDto = eventMapper.toFullDto(savedEvent, user);
         eventDto.setConfirmedRequests(0L);
         eventDto.setViews(0L);
         return eventDto;
@@ -125,6 +129,13 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
         return eventStatsService.enrichEventFullDto(event, eventMapper);
+    }
+
+    @Override
+    public Set<EventFullDto> getEvents(Set<Long> ids) {
+        return eventRepository.findAllById(ids).stream()
+                .map(event ->  eventStatsService.enrichEventFullDto(event, eventMapper))
+                .collect(Collectors.toSet());
     }
 
 

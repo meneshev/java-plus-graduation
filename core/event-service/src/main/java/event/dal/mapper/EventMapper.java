@@ -28,11 +28,11 @@ public interface EventMapper {
     Event toEvent(NewEventDto newEventDto);
 
     @Mapping(target = "category", source = "category", qualifiedByName = "categoryToDto")
-    @Mapping(target = "initiator", source = "initiator", qualifiedByName = "userToShortDto")
+    @Mapping(target = "initiator", source = "user")
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "paid", source = "isPaid")
     @Mapping(target = "views", ignore = true)
-    EventShortDto toShortDto(Event event);
+    EventShortDto toShortDto(Event event, UserShortDto user);
 
     @Mapping(target = "annotation", source = "annotation")
     @Mapping(target = "description", source = "description")
@@ -47,10 +47,10 @@ public interface EventMapper {
     @Mapping(target = "requestModeration", source = "isRequestModeration")
     @Mapping(target = "location", source = "location", qualifiedByName = "eventLocationToLocationDto")
     @Mapping(target = "category", source = "category", qualifiedByName = "categoryToDto")
-    @Mapping(target = "initiator", source = "initiator", qualifiedByName = "userToShortDto")
+    @Mapping(target = "initiator", source = "user")
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
-    EventFullDto toFullDto(Event event);
+    EventFullDto toFullDto(Event event, UserShortDto user);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
@@ -89,16 +89,6 @@ public interface EventMapper {
         return categoryDto;
     }
 
-    @Named("userToShortDto")
-    default UserShortDto userToShortDto(User user) {
-        if (user == null) {
-            return null;
-        }
-        UserShortDto userShortDto = new UserShortDto();
-        userShortDto.setId(user.getId());
-        userShortDto.setName(user.getName());
-        return userShortDto;
-    }
 
     @Named("locationDtoToEventLocation")
     default EventLocation toEventLocation(LocationDto locationDto) {

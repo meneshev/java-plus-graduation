@@ -42,9 +42,6 @@ public class Event {
     @Column(name = "published_on")
     private LocalDateTime publishedAt;
 
-    //Сделал Embedded согласно замечанию. Однако мне не понятно, почему некорректно PGpoint использовать?
-    // тип point как раз для работы с координатами, ранее использованное решение полностью работоспособно
-    // просьба пояснить, почему именно это решение является верным
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "latitude", column = @Column(name = "latitude")),
