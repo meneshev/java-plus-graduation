@@ -1,11 +1,14 @@
 package request.dal.mapper;
 
 import dto.request.ParticipationRequestDto;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.mapstruct.*;
 import request.dal.entity.ParticipationRequest;
 
-@Mapper(componentModel = "spring")
+@Mapper(
+        componentModel = MappingConstants.ComponentModel.SPRING,
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
+)
 public interface ParticipationRequestMapper {
 
     @Mapping(source = "event", target = "event")

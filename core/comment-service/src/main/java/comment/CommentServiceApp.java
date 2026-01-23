@@ -7,7 +7,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"comment", "util"}) // для логирования через AOP
-@EnableFeignClients
+@EnableFeignClients(basePackages = {"feign.event", "feign.user"})
 public class CommentServiceApp {
     public static void main(String[] args) {
         SpringApplication.run(CommentServiceApp.class, args);

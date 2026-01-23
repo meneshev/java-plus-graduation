@@ -15,20 +15,20 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("SELECT c FROM Comment c " +
             "LEFT JOIN FETCH c.author " +
             "LEFT JOIN FETCH c.event " +
-            "WHERE c.author.id = :authorId AND c.isDeleted = false " +
+            "WHERE c.author = :authorId AND c.isDeleted = false " +
             "ORDER BY c.createdDate DESC")
     Page<Comment> findByAuthorIdAndIsDeletedFalse(@Param("authorId") Long authorId, Pageable pageable);
 
     @Query("SELECT c FROM Comment c " +
             "LEFT JOIN FETCH c.author " +
             "LEFT JOIN FETCH c.event " +
-            "WHERE c.id = :id AND c.author.id = :authorId")
+            "WHERE c.id = :id AND c.author = :authorId")
     Optional<Comment> findByIdAndAuthorId(@Param("id") Long id, @Param("authorId") Long authorId);
 
     @Query("SELECT c FROM Comment c " +
             "LEFT JOIN FETCH c.author " +
             "LEFT JOIN FETCH c.event " +
-            "WHERE c.event.id IN :eventIds AND c.isDeleted = false")
+            "WHERE c.event IN :eventIds AND c.isDeleted = false")
     List<Comment> findByEventIds(@Param("eventIds") List<Long> eventIds);
 
     @Query("SELECT c FROM Comment c " +
@@ -40,7 +40,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("SELECT c FROM Comment c " +
             "LEFT JOIN FETCH c.author " +
             "LEFT JOIN FETCH c.event " +
-            "WHERE c.event.id = :eventId AND c.isDeleted = false " +
+            "WHERE c.event = :eventId AND c.isDeleted = false " +
             "ORDER BY c.createdDate DESC")
     Page<Comment> findByEventIdNotDeleted(@Param("eventId") Long eventId, Pageable pageable);
 }

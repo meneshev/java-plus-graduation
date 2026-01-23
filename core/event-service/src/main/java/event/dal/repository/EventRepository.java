@@ -19,9 +19,9 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     boolean existsById(@NonNull Long id);
 
-    Page<Event> findAllByInitiatorIdOrderByCreatedAtDesc(Long initiatorId, Pageable pageable);
+    Page<Event> findAllByInitiatorOrderByCreatedAtDesc(Long initiatorId, Pageable pageable);
 
-    Optional<Event> findByIdAndInitiatorId(Long eventId, Long initiatorId);
+    Optional<Event> findByIdAndInitiator(Long eventId, Long initiatorId);
 
     boolean existsByCategoryId(Long categoryId);
 

@@ -64,7 +64,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
             throw new ConflictException("Нельзя участвовать в неопубликованном событии");
         }
 
-        if (requestRepository.existsByEventIdAndRequesterId(eventId, userId)) {
+        if (requestRepository.existsByEventAndRequester(eventId, userId)) {
             throw new ConflictException("Запрос на участие в этом событии уже существует");
         }
 

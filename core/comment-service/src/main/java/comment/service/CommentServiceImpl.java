@@ -55,7 +55,7 @@ public class CommentServiceImpl implements CommentService {
         log.info("Создан новый комментарий: ID={}, authorId={}, eventId={}",
                 savedComment.getId(), userId, eventId);
 
-        return commentMapper.toDto(savedComment);
+        return commentMapper.toDto(savedComment, userClient.getById(userId));
     }
 
     @Override
@@ -81,7 +81,7 @@ public class CommentServiceImpl implements CommentService {
         Comment updatedComment = commentRepository.save(comment);
         log.info("Комментарий обновлен: commentId={}", commentId);
 
-        return commentMapper.toDto(updatedComment);
+        return commentMapper.toDto(updatedComment, userClient.getById(userId));
     }
 
     @Override
@@ -131,7 +131,7 @@ public class CommentServiceImpl implements CommentService {
 
         return commentRepository.findByEventIdNotDeleted(eventId, pageable)
                 .stream()
-                .map(commentMapper::toDto)
+                .map(comment -> commentMapper.toDto(comment, userClient.getById(comment.getAuthor())))
                 .collect(Collectors.toList());
     }
 
@@ -145,7 +145,7 @@ public class CommentServiceImpl implements CommentService {
 
         return commentRepository.findByAuthorIdAndIsDeletedFalse(userId, pageable)
                 .stream()
-                .map(commentMapper::toDto)
+                .map(comment -> commentMapper.toDto(comment, userClient.getById(comment.getAuthor())))
                 .collect(Collectors.toList());
     }
 
@@ -161,7 +161,7 @@ public class CommentServiceImpl implements CommentService {
                 });
 
         log.debug("Комментарий найден: commentId={}", commentId);
-        return commentMapper.toDto(comment);
+        return commentMapper.toDto(comment, userClient.getById(comment.getAuthor()));
     }
 
     @Override
@@ -171,7 +171,7 @@ public class CommentServiceImpl implements CommentService {
 
         List<Comment> comments = commentRepository.findByEventIds(eventIds);
         List<CommentDto> result = comments.stream()
-                .map(commentMapper::toDto)
+                .map(comment -> commentMapper.toDto(comment, userClient.getById(comment.getAuthor())))
                 .collect(Collectors.toList());
 
         log.debug("Найдено комментариев для {} событий: {}", eventIds.size(), result.size());

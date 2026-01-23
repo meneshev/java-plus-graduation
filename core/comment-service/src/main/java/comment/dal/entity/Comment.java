@@ -23,7 +23,7 @@ public class Comment {
     private String text;
 
     @Column(name = "author_id", nullable = false)
-    private Long author; //TODO userID
+    private Long author;
 
     @Column(name = "event_id", nullable = false)
     private Long event;

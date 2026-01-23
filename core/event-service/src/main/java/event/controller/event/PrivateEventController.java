@@ -3,7 +3,12 @@ package event.controller.event;
 import dto.event.EventFullDto;
 import dto.event.EventShortDto;
 import dto.event.NewEventDto;
+import dto.event.UpdateEventUserRequest;
+import dto.request.EventRequestStatusUpdateRequest;
+import dto.request.EventRequestStatusUpdateResult;
+import dto.request.ParticipationRequestDto;
 import event.service.EventService;
+import feign.request.RequestClient;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -23,7 +28,7 @@ import java.util.List;
 @Validated
 public class PrivateEventController {
     private final EventService eventService;
-    private final ParticipationRequestService requestService;
+    private final RequestClient requestClient;
 
     @GetMapping("/{userId}/events")
     public List<EventShortDto> getEvents(@PathVariable("userId") Long userId,
@@ -57,13 +62,13 @@ public class PrivateEventController {
     @GetMapping("/{userId}/events/{eventId}/requests")
     public List<ParticipationRequestDto> getRequestsByEvent(@PathVariable("userId") Long userId,
                                                             @PathVariable("eventId") Long eventId) {
-        return requestService.getRequestsByEvent(userId, eventId);
+        return requestClient.getParticipationRequestsInner(userId, eventId);
     }
 
     @PatchMapping("/{userId}/events/{eventId}/requests")
     public EventRequestStatusUpdateResult changeRequestStatus(@PathVariable("userId") Long userId,
                                                               @PathVariable("eventId") Long eventId,
                                                               @RequestBody EventRequestStatusUpdateRequest request) {
-        return requestService.changeRequestStatus(userId, eventId, request);
+        return requestClient.changeRequestStatus(userId, eventId, request);
     }
 }

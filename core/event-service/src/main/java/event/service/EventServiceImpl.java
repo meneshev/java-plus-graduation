@@ -41,7 +41,7 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     public List<EventShortDto> getEvents(Long userId, Pageable pageable) {
         userClient.getById(userId);
-        Page<Event> eventsPage = eventRepository.findAllByInitiatorIdOrderByCreatedAtDesc(userId, pageable);
+        Page<Event> eventsPage = eventRepository.findAllByInitiatorOrderByCreatedAtDesc(userId, pageable);
 
         return eventStatsService.enrichEventsShortDtoBatch(eventsPage.getContent(), eventMapper);
     }
@@ -50,7 +50,7 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     public EventFullDto getEvent(Long userId, Long eventId, String ip) {
         userClient.getById(userId);
-        Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
+        Event event = eventRepository.findByIdAndInitiator(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
         eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
@@ -82,7 +82,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
         userClient.getById(userId);
-        Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
+        Event event = eventRepository.findByIdAndInitiator(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
         EventValidationUtils.validateEventStateForUpdate(event);

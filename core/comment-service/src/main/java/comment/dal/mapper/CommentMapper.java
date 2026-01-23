@@ -5,6 +5,7 @@ import comment.dal.entity.Comment;
 import dto.comment.CommentDto;
 import dto.comment.NewCommentDto;
 import dto.comment.UpdateCommentDto;
+import dto.user.UserShortDto;
 import org.mapstruct.*;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
@@ -18,8 +19,10 @@ public interface CommentMapper {
     @Mapping(target = "isDeleted", ignore = true)
     Comment toComment(NewCommentDto newCommentDto, Long author, Long event);
 
-    @Mapping(target = "eventId", source = "event.id")
-    CommentDto toDto(Comment comment);
+    @Mapping(target = "eventId", source = "comment.event")
+    @Mapping(target = "id", source = "comment.id")
+    @Mapping(target = "author", source = "user")
+    CommentDto toDto(Comment comment, UserShortDto user);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
