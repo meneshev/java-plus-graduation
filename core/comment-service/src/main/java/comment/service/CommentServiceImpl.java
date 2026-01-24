@@ -43,6 +43,10 @@ public class CommentServiceImpl implements CommentService {
             throw new NotFoundException("Событие не найдено");
         }
 
+        if (event.getState() == null) {
+            throw new RuntimeException("Не удалось получить состояние публикации события");
+        }
+
         if (!"PUBLISHED".equals(event.getState())) {
             log.warn("Попытка создания комментария к неопубликованному событию: eventId={}, state={}",
                     eventId, event.getState());

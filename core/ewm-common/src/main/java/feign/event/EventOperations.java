@@ -7,15 +7,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public interface EventOperations {
     @GetMapping("/{id}")
     EventFullDto getById(@PathVariable("id") Long id);
 
-    @GetMapping
-    Set<EventFullDto> getByIds(@RequestParam("ids") Set<Long> ids);
-
     @GetMapping("/confirmed")
-    Map<Long, Long> getConfirmedRequestsBatchByEventIds(@RequestParam("eventIds") List<Long> eventIds);
+    Map<Long, Long> getConfirmedRequestsBatchByEventIds(@RequestParam List<Long> eventIds);
 }

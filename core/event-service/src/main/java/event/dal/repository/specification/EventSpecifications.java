@@ -79,7 +79,7 @@ public class EventSpecifications {
             if (userIds == null || userIds.isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            return root.get("initiator").get("id").in(userIds);
+            return root.get("initiator").in(userIds);
         };
     }
 

@@ -27,18 +27,16 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     Page<Event> findAll(@NonNull Specification<Event> spec, @NonNull Pageable pageable);
 
-    @Query("SELECT e FROM Event e LEFT JOIN FETCH e.initiator WHERE e.id = :eventId")
+    @Query("SELECT e FROM Event e WHERE e.id = :eventId and e.initiator is not null")
     Optional<Event> findByIdWithInitiator(@Param("eventId") Long eventId);
 
     @Query("SELECT e FROM Event e " +
             "LEFT JOIN FETCH e.category " +
-            "LEFT JOIN FETCH e.initiator " +
             "WHERE e.id = :eventId")
     Optional<Event> findByIdWithCategoryAndInitiator(@Param("eventId") Long eventId);
 
     @Query("SELECT e FROM Event e " +
             "LEFT JOIN FETCH e.category " +
-            "LEFT JOIN FETCH e.initiator " +
             "WHERE e.id IN :eventIds")
     List<Event> findAllByIdWithCategoryAndInitiator(@Param("eventIds") List<Long> eventIds);
 

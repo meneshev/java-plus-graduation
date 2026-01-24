@@ -6,5 +6,5 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 public interface UserOperations {
     @GetMapping("/{id}")
-    public UserShortDto getById(@PathVariable("id") Long id);
+    UserShortDto getById(@PathVariable("id") Long id);
 }

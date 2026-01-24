@@ -14,7 +14,7 @@ spring:
         - id: ewm_request_service_route
           uri: lb://request-service
           predicates:
-            - Path=/users/*/requests/**, /users/*/events/*/requests/**
+            - Path=/users/*/events/*/requests, /users/*/requests, /users/*/requests/*/cancel
 
         - id: ewm_event_service_route
           uri: lb://event-service

@@ -56,6 +56,10 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
             throw new NotFoundException("Событие с id=" + eventId + " не найдено");
         }
 
+        if (event.getInitiator() == null) {
+            throw new RuntimeException("Не удалось получить автора события");
+        }
+
         if (event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Нельзя участвовать в собственном событии");
         }
@@ -105,6 +109,10 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
         if (event == null) {
             throw new NotFoundException("Событие с id = " + eventId + " не найдено");
+        }
+
+        if (event.getInitiator() == null) {
+            throw new RuntimeException("Не удалось получить автора события");
         }
 
         if (!event.getInitiator().getId().equals(userId)) {
@@ -196,6 +204,10 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
         if (event == null) {
             throw new NotFoundException("Событие с id = " + eventId + " не найдено");
+        }
+
+        if (event.getInitiator() == null) {
+            throw new RuntimeException("Не удалось получить автора события");
         }
 
         if (!event.getInitiator().getId().equals(userId)) {
