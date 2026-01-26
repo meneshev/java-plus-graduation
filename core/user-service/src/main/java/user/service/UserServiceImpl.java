@@ -16,6 +16,7 @@ import util.exception.ConflictException;
 import util.exception.NotFoundException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -70,6 +71,15 @@ public class UserServiceImpl implements UserService {
 
         log.debug("Найдено пользователей: {}", users.size());
         return users;
+    }
+
+    @Override
+    public Map<Long, UserShortDto> getUsers(List<Long> ids) {
+        return userRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        userMapper::toShortDto
+                ));
     }
 
     @Override

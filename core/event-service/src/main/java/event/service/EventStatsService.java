@@ -99,6 +99,25 @@ public class EventStatsService {
         return dto;
     }
 
+    public List<EventFullDto> enrichEventsFullDto(Iterable<Long> ids, EventMapper eventMapper) {
+        List<Event> events = eventRepository.findAllById(ids);
+        Map<Long, UserShortDto> users = userClient.getByIds(
+                events.stream().map(Event::getInitiator).toList()
+        );
+
+        Map<Long, Long> confirmedRequests = getConfirmedRequestsBatch((List<Long>) ids);
+        Map<Long, Long> views = getViewsForEventsBatch((List<Long>) ids);
+
+        return events.stream()
+                .map(event -> {
+                    EventFullDto dto = eventMapper.toFullDto(event, users.get(event.getInitiator()));
+                    dto.setViews(views.getOrDefault(event.getId(), 0L));
+                    dto.setConfirmedRequests(confirmedRequests.getOrDefault(event.getId(), 0L));
+                    return dto;
+                })
+                .toList();
+    }
+
     public EventShortDto enrichEventShortDto(Event event, EventMapper eventMapper) {
         UserShortDto user = userClient.getById(event.getInitiator());
         EventShortDto dto = eventMapper.toShortDto(event, user);

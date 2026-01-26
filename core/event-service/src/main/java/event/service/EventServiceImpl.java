@@ -22,6 +22,7 @@ import event.validation.EventValidationUtils;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -132,10 +133,8 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public Set<EventFullDto> getEvents(Set<Long> ids) {
-        return eventRepository.findAllById(ids).stream()
-                .map(event ->  eventStatsService.enrichEventFullDto(event, eventMapper))
-                .collect(Collectors.toSet());
+    public List<EventFullDto> getEvents(Set<Long> ids) {
+        return eventStatsService.enrichEventsFullDto(ids, eventMapper);
     }
 
 

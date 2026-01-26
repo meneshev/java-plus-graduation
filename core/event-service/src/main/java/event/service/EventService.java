@@ -21,5 +21,5 @@ public interface EventService {
 
     EventFullDto getEventById(Long eventId);
 
-    Set<EventFullDto> getEvents(Set<Long> ids);
+    List<EventFullDto> getEvents(Set<Long> ids);
 }

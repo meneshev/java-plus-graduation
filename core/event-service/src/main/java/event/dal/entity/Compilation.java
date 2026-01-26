@@ -24,7 +24,7 @@ public class Compilation {
     @Builder.Default
     private boolean pinned = false;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "compilation_events",
             joinColumns = @JoinColumn(name = "compilation_id")
