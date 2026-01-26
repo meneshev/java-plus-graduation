@@ -63,13 +63,13 @@ public class EventStatsService {
     }
 
     public void recordHit(String path, String ip) {
-        EndpointHitDto hitDto = new EndpointHitDto(
-                APP_NAME,
-                path,
-                ip,
-                LocalDateTime.now()
-        );
-        statsClient.hit(hitDto);
+        EndpointHitDto dto = EndpointHitDto.builder()
+                .uri(path)
+                .ip(ip)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        statsClient.hit(dto);
     }
 
     public Map<Long, Long> getConfirmedRequestsBatch(List<Long> eventIds) {
