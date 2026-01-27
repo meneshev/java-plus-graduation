@@ -1,2 +1,5 @@
 services:
   stats-service-id: stats-server
+
+apps:
+  ewm-main: ewm-main-service
