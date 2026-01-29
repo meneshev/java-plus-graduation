@@ -1,0 +1,63 @@
+server:
+  port: 9095
+
+grpc:
+
+  server:
+    port: 0
+
+  client:
+    hub-router:
+      address: "static://localhost:59090" #TODO
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+
+spring:
+  application:
+    name: analyzer
+  main:
+    log-startup-info: false
+    banner-mode: off
+  kafka:
+    properties:
+      bootstrap-servers: "localhost:9092"
+      key-deserializer: "org.apache.kafka.common.serialization.VoidDeserializer"
+      consumer:
+        auto-commit: false
+        timeout-ms: 500
+        groups:
+          analyzer-user-actions: "analyzer-user-actions-group"
+          analyzer-events-similarity: "analyzer-events-similarity-group"
+      topics:
+        user-actions: "stats.user-actions.v1"
+        evens-similarity: "stats.events-similarity.v1"
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  datasource:
+    url: jdbc:postgresql://localhost:5434/telemetry_analyzer #TODO
+    driverClassName: org.postgresql.Driver
+    username: smart_home_tech.service_user
+    password: 12345
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
+logging:
+  level:
+    org:
+      springframework:
+        context: ERROR
+        jdbc: DEBUG
+        cloud.netflix.eureka: INFO
+      hibernate:
+        SQL: DEBUG
+      apache.kafka: ERROR
+    root: INFO
