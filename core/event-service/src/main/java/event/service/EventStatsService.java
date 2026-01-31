@@ -95,7 +95,7 @@ public class EventStatsService {
         Map<Long, Long> views = getViewsForEventsBatch(List.of(event.getId()));
 
         dto.setConfirmedRequests(confirmedRequests.getOrDefault(event.getId(), 0L));
-        dto.setViews(views.getOrDefault(event.getId(), 0L));
+        dto.setRating(views.getOrDefault(event.getId(), 0L));
         return dto;
     }
 
@@ -111,7 +111,7 @@ public class EventStatsService {
         return events.stream()
                 .map(event -> {
                     EventFullDto dto = eventMapper.toFullDto(event, users.get(event.getInitiator()));
-                    dto.setViews(views.getOrDefault(event.getId(), 0L));
+                    dto.setRating(views.getOrDefault(event.getId(), 0L));
                     dto.setConfirmedRequests(confirmedRequests.getOrDefault(event.getId(), 0L));
                     return dto;
                 })
@@ -125,7 +125,7 @@ public class EventStatsService {
         Map<Long, Long> views = getViewsForEventsBatch(List.of(event.getId()));
 
         dto.setConfirmedRequests(confirmedRequests.getOrDefault(event.getId(), 0L));
-        dto.setViews(views.getOrDefault(event.getId(), 0L));
+        dto.setRating(views.getOrDefault(event.getId(), 0L));
         return dto;
     }
 
@@ -154,7 +154,7 @@ public class EventStatsService {
                     UserShortDto user = userClient.getById(event.getInitiator());
                     EventFullDto dto = eventMapper.toFullDto(event, user);
                     dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
-                    dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
+                    dto.setRating(viewsMap.getOrDefault(event.getId(), 0L));
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -178,7 +178,7 @@ public class EventStatsService {
                     UserShortDto user = userClient.getById(event.getInitiator());
                     EventShortDto dto = eventMapper.toShortDto(event, user);
                     dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
-                    dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
+                    dto.setRating(viewsMap.getOrDefault(event.getId(), 0L));
                     return dto;
                 })
                 .collect(Collectors.toList());

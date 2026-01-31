@@ -1,6 +1,8 @@
 package request.service;
 
 
+import client.CollectorClient;
+import com.google.protobuf.Timestamp;
 import dto.event.EventFullDto;
 import dto.request.EventRequestStatusUpdateRequest;
 import dto.request.EventRequestStatusUpdateResult;
@@ -15,9 +17,12 @@ import request.dal.entity.ParticipationRequest;
 import request.dal.entity.RequestStatus;
 import request.dal.mapper.ParticipationRequestMapper;
 import request.dal.repository.ParticipationRequestRepository;
+import ru.yandex.practicum.grpc.stats.user.ActionTypeProto;
+import ru.yandex.practicum.grpc.stats.user.UserActionProto;
 import util.exception.ConflictException;
 import util.exception.NotFoundException;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +38,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
     private final UserClient userClient;
     private final EventClient eventClient;
     private final ParticipationRequestMapper requestMapper;
+    private final CollectorClient collectorClient;
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
@@ -95,6 +101,25 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
         ParticipationRequest savedRequest = requestRepository.save(request);
         log.info("Запрос создан с id: {}", savedRequest.getId());
+
+        try {
+            Instant ts = Instant.now();
+            UserActionProto userAction = UserActionProto.newBuilder()
+                    .setUserId(userId)
+                    .setEventId(eventId)
+                    .setActionType(ActionTypeProto.ACTION_REGISTER)
+                    .setTimestamp(Timestamp.newBuilder()
+                            .setSeconds(ts.getEpochSecond())
+                            .setNanos(ts.getNano())
+                            .build()
+                    )
+                    .build();
+
+            log.info("Sending user action: {}", userAction);
+            collectorClient.sendUserAction(userAction);
+        } catch (RuntimeException e) {
+            log.error("Sending user action failed", e);
+        }
 
         return requestMapper.toDto(savedRequest);
     }

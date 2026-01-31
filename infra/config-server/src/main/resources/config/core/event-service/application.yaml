@@ -42,8 +42,8 @@ management:
   # Logging
 logging:
   level:
-    ewm: DEBUG
+    ewm: ERROR
     org.hibernate.SQL: DEBUG
     org.springframework:
-      boot.autoconfigure: DEBUG
-      context: DEBUG
+      boot.autoconfigure: ERROR
+      context: ERROR

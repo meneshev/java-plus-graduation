@@ -1,5 +1,7 @@
 package event.service;
 
+import client.CollectorClient;
+import com.google.protobuf.Timestamp;
 import dto.event.*;
 import dto.user.UserShortDto;
 import event.dal.entity.Event;
@@ -10,6 +12,7 @@ import event.dal.repository.EventRepository;
 import event.dal.repository.specification.EventSpecifications;
 import feign.user.UserClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,15 +20,19 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.grpc.stats.user.ActionTypeProto;
+import ru.yandex.practicum.grpc.stats.user.UserActionProto;
 import util.exception.NotFoundException;
 import event.validation.EventValidationUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,6 +43,7 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final UserClient userClient;
     private final EventStatsService eventStatsService;
+    private final CollectorClient collectorClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,12 +56,12 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventFullDto getEvent(Long userId, Long eventId, String ip) {
+    public EventFullDto getEvent(Long userId, Long eventId) {
         userClient.getById(userId);
         Event event = eventRepository.findByIdAndInitiator(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
-        eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
+        //eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
         return eventStatsService.enrichEventFullDto(event, eventMapper);
     }
 
@@ -74,7 +82,7 @@ public class EventServiceImpl implements EventService {
 
         EventFullDto eventDto = eventMapper.toFullDto(savedEvent, user);
         eventDto.setConfirmedRequests(0L);
-        eventDto.setViews(0L);
+        eventDto.setRating(0.0);
         return eventDto;
     }
 
@@ -98,7 +106,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventShortDto> getPublicEvents(PublicEventSearchRequest requestParams, Pageable pageable, String ip) {
+    public List<EventShortDto> getPublicEvents(PublicEventSearchRequest requestParams, Pageable pageable) {
 
         EventValidationUtils.validateDateRange(requestParams.getRangeStart(), requestParams.getRangeEnd());
 
@@ -107,19 +115,38 @@ public class EventServiceImpl implements EventService {
         List<Event> events = eventRepository.findAll(spec, pageable).getContent();
         List<EventShortDto> result = eventStatsService.enrichEventsShortDtoBatch(events, eventMapper);
 
-        eventStatsService.recordHit(ENDPOINT, ip);
+        //eventStatsService.recordHit(ENDPOINT, ip);
 
         return sortEvents(result, requestParams.getSort());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public EventFullDto getPublicEventById(Long eventId, String ip) {
+    public EventFullDto getPublicEventById(Long eventId, Long userId) {
         Event event = eventRepository.findById(eventId)
                 .filter(e -> EventState.PUBLISHED.toString().equals(e.getState()))
                 .orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
 
-        eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
+       // eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
+        try {
+            Instant ts = Instant.now();
+            UserActionProto userAction = UserActionProto.newBuilder()
+                    .setUserId(userId)
+                    .setEventId(eventId)
+                    .setActionType(ActionTypeProto.ACTION_VIEW)
+                    .setTimestamp(Timestamp.newBuilder()
+                            .setSeconds(ts.getEpochSecond())
+                            .setNanos(ts.getNano())
+                            .build()
+                    )
+                    .build();
+
+            log.info("Sending user action: {}", userAction);
+            collectorClient.sendUserAction(userAction);
+        } catch (RuntimeException e) {
+            log.error("Sending user action failed", e);
+        }
+
         return eventStatsService.enrichEventFullDto(event, eventMapper);
     }
 
@@ -185,7 +212,7 @@ public class EventServiceImpl implements EventService {
     private List<EventShortDto> sortEvents(List<EventShortDto> events, String sort) {
         if ("VIEWS".equals(sort)) {
             return events.stream()
-                    .sorted(Comparator.comparing(EventShortDto::getViews).reversed())
+                    .sorted(Comparator.comparing(EventShortDto::getRating).reversed())
                     .collect(Collectors.toList());
         }
         return events;

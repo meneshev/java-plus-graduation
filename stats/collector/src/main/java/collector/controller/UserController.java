@@ -1,5 +1,6 @@
 package collector.controller;
 
+import collector.service.CollectorService;
 import com.google.protobuf.Empty;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -14,11 +15,13 @@ import ru.yandex.practicum.grpc.stats.user.UserActionProto;
 @GrpcService
 @RequiredArgsConstructor
 public class UserController extends UserActionControllerGrpc.UserActionControllerImplBase {
+    private final CollectorService collectorService;
+
     @Override
     public void collectUserAction(UserActionProto request, StreamObserver<Empty> responseObserver) {
         try {
             log.info("Received request to collect user action: {}", request);
-            //toQueue
+            collectorService.sendMessage(request);
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
