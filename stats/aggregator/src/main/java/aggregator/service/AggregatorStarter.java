@@ -1,18 +1,27 @@
 package aggregator.service;
 
 import aggregator.kafka.AggregatorKafkaClient;
+import aggregator.model.Event;
+import aggregator.model.User;
+import com.netflix.appinfo.InstanceInfo;
 import config.KafkaProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
+import ru.practicum.ewm.stats.avro.ActionTypeAvro;
 import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static ru.practicum.ewm.stats.avro.ActionTypeAvro.VIEW;
 
 @Slf4j
 @Component
@@ -20,6 +29,9 @@ import java.util.List;
 public class AggregatorStarter {
     private final KafkaProperties kafkaProperties;
     private final AggregatorKafkaClient kafkaClient;
+    private final Map<User, Map<Event, Double>> userInteractions = new HashMap<>(); // действия пользователя с событием
+    private final Map<Event, Double> eventWeights = new HashMap<>(); // общая сумма весов события
+    private final Map<Event, Map<Event, Double>> minEventWeights = new HashMap<>(); // минимальный вес для каждой пары
 
     private void start() {
         Runtime.getRuntime().addShutdownHook(new Thread(kafkaClient.getConsumer()::wakeup));
@@ -53,13 +65,19 @@ public class AggregatorStarter {
     }
 
     private List<EventSimilarityAvro> process(ConsumerRecords<Void, UserActionAvro> userActions) {
-        List<EventSimilarityAvro> events = new ArrayList<>();
+        List<EventSimilarityAvro> eventsSimilarities = new ArrayList<>();
 
-        /*
-         * Допустим, если пользователь просмотрел страницу мероприятия, это будет соответствовать весу 0.4.
-         * Если зарегистрировался — 0.8.
-         * Если после посещения мероприятия пользователь поставил лайк, это 1.
-         * */
+        for (ConsumerRecord<Void, UserActionAvro> userAction : userActions) {
+            User user = new  User(userAction.value().getUserId());
+            Event event = new  Event(userAction.value().getEventId());
+            double weight = getWeight(userAction.value().getActionType());
+
+            if (eventWeights.containsKey(event)) {
+
+            } else {
+
+            }
+        }
 
         /*
          * При расчёте сходства двух мероприятий важно учитывать вклад только тех пользователей, которые взаимодействовали с обоими мероприятиями.
@@ -99,5 +117,13 @@ public class AggregatorStarter {
         *    3) рекомендации (getRecommendationForUser). смотрим с чем пользователь взаимодействовал, для каждого мероприятия
         *    с которым взаимодействовал рассчитываем похожесть, объединяем, сортируем
         * */
+    }
+
+    private double getWeight(ActionTypeAvro actionType) {
+        return switch (actionType) {
+            case VIEW -> 0.4;
+            case REGISTER -> 0.8;
+            case LIKE -> 1.0;
+        };
     }
 }
