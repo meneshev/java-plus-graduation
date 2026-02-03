@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class EventStatsService {
     private static final String ENDPOINT = "/events";
-    private static final String APP_NAME = "ewm-main-service";
 
     private final StatsClient statsClient;
     private final RequestClient requestClient;
