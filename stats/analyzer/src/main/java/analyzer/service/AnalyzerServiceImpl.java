@@ -13,6 +13,7 @@ import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,13 +35,83 @@ public class AnalyzerServiceImpl implements AnalyzerService {
 
     @Override
     public Map<Long, Double> getSimilarEvents(Long eventId, Long userId, Integer limit) {
-        return Map.of();
+        List<Long> interactedEventIds = interactionRepository.findAllInteractedEventsByUserId(userId, limit);
+        List<Similarity> similarities = similarityRepository.getSimilarEvents(interactedEventIds, List.of(eventId), limit);
+        return similarities.stream()
+                .collect(Collectors.toMap(
+                        s -> s.getEvent1().equals(eventId) ? s.getEvent2() : s.getEvent1(),
+                        Similarity::getSimilarity,
+                        Math::max,
+                        LinkedHashMap::new
+                ));
     }
 
     @Override
     public Map<Long, Double> getRecommendations(Long userId, Integer limit) {
-        return Map.of();
+        List<Long> interactedEventIds = interactionRepository.findAllInteractedEventsByUserId(userId, limit);
+        if (interactedEventIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Similarity> candidates = similarityRepository.getNotInteractedEvents(interactedEventIds, limit);
+
+        Map<Long, Double> recommendations = new LinkedHashMap<>();
+
+        for (Similarity similarity : candidates) {
+            Long candidateEvnId = interactedEventIds.contains(similarity.getEvent1()) ? similarity.getEvent2() : similarity.getEvent1();
+
+            if (interactedEventIds.contains(candidateEvnId) || recommendations.containsKey(candidateEvnId)) {
+                continue;
+            }
+
+            double possibleRating = getPossibleRating(candidateEvnId, userId, interactedEventIds);
+            recommendations.put(candidateEvnId, possibleRating);
+
+            if (recommendations.size() >= limit) {
+                break;
+            }
+        }
+
+        return recommendations;
     }
+
+    private double getPossibleRating(Long candidateEvnId, Long userId, List<Long> interactedEventIds) {
+        List<Similarity> interacted = similarityRepository.findInteractedEvents(candidateEvnId, interactedEventIds);
+
+        if (interacted.isEmpty()) {
+            return 0.0;
+        }
+
+        Map<Long, Double> similarities = interacted.stream()
+                .collect(Collectors.toMap(
+                        s -> s.getEvent1().equals(candidateEvnId) ? s.getEvent2() : s.getEvent1(),
+                        Similarity::getSimilarity,
+                        (a, b) -> a
+                ));
+
+
+        List<Interaction> interactions =
+                interactionRepository.findByUserIdAndEventIds(userId, similarities.keySet().stream().toList());
+
+        Map<Long, Double> ratings = interactions.stream()
+                .collect(Collectors.toMap(Interaction::getEventId, Interaction::getRating));
+
+        double weightedSum = 0.0;
+        double simSum = 0.0;
+
+        for (var e : similarities.entrySet()) {
+            Long eventId = e.getKey();
+            double sim = e.getValue();
+            Double rating = ratings.get(eventId);
+            if (rating == null) continue;
+
+            weightedSum += sim * rating;
+            simSum += sim;
+        }
+
+        return simSum == 0.0 ? 0.0 : (weightedSum / simSum);
+    }
+
 
     @Override
     public void processEventSimilarity(EventSimilarityAvro avro) {

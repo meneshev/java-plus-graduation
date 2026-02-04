@@ -51,9 +51,8 @@ public class AnalyzerUserActionsProcessor implements Runnable {
         for (ConsumerRecord<Void, UserActionAvro> record : records) {
             log.info("Processing record - topic:[{}] partition:[{}] offset:[{}] value: {}",
                     record.topic(), record.partition(), record.offset(), record.value());
-            if (analyzerService.processUserAction(record.value())) {
-                client.getConsumer().commitSync();
-            }
+            analyzerService.processUserAction(record.value());
+            client.getConsumer().commitSync();
         }
     }
 }
