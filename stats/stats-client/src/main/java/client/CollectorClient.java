@@ -23,4 +23,6 @@ public class CollectorClient {
             throw new RuntimeException("Filed to send user action proto", e);
         }
     }
+
+    //TODO saveView, saveLike, saveReg -> sender (13:09)
 }

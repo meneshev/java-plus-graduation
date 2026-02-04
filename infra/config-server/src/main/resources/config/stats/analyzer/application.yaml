@@ -1,17 +1,9 @@
 server:
-  port: 9095
+  port: 0
 
 grpc:
-
   server:
     port: 0
-
-  client:
-    hub-router:
-      address: "static://localhost:59090" #TODO
-      enableKeepAlive: true
-      keepAliveWithoutCalls: true
-      negotiationType: plaintext
 
 spring:
   application:
@@ -39,10 +31,10 @@ spring:
     hibernate:
       ddl-auto: create-drop
   datasource:
-    url: jdbc:postgresql://localhost:5434/telemetry_analyzer #TODO
+    url: jdbc:postgresql://localhost:5434/ewm_ratings_db
     driverClassName: org.postgresql.Driver
-    username: smart_home_tech.service_user
-    password: 12345
+    username: user
+    password: password
 
 management:
   endpoints:

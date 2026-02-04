@@ -47,6 +47,7 @@ services:
         CREATE DATABASE ewm_request_db;
         CREATE DATABASE ewm_user_db;
         CREATE DATABASE ewm_comment_db;
+        CREATE DATABASE ewm_ratings_db;
         EOSQL
         echo "Databases created successfully!"
 
