@@ -1,5 +1,6 @@
 package request.dal.entity;
 
+import enums.RequestStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

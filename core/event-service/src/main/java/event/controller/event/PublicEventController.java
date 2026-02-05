@@ -40,12 +40,15 @@ public class PublicEventController {
     }
 
     @GetMapping("/recommendations")
-    public void getRecommendations() {
-        //TODO
+    public ResponseEntity<List<EventFullDto>>  getRecommendations(@RequestParam Integer limit,
+                                                                   @RequestHeader(name = "X-EWM-USER-ID") Long userId) {
+        List<EventFullDto> recs = eventService.getRecommendations(userId, limit);
+        return ResponseEntity.ok(recs);
     }
 
-    @PutMapping("/{id}/like")
-    public void setLike() {
-        //TODO
+    @PutMapping("/{eventId}/like")
+    public void setLike(@PathVariable Long eventId,
+                        @RequestHeader(name = "X-EWM-USER-ID") Long userId) {
+        eventService.setLike(eventId, userId);
     }
 }

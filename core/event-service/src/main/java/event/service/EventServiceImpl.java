@@ -1,16 +1,20 @@
 package event.service;
 
+import client.AnalyzerClient;
 import client.CollectorClient;
-import com.google.protobuf.Timestamp;
 import dto.event.*;
+import dto.request.ParticipationRequestDto;
 import dto.user.UserShortDto;
+import enums.RequestStatus;
 import event.dal.entity.Event;
 import event.dal.entity.EventState;
 import enums.StateAction;
 import event.dal.mapper.EventMapper;
 import event.dal.repository.EventRepository;
 import event.dal.repository.specification.EventSpecifications;
+import feign.request.RequestClient;
 import feign.user.UserClient;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,16 +24,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.grpc.stats.user.ActionTypeProto;
-import ru.yandex.practicum.grpc.stats.user.UserActionProto;
+import ru.yandex.practicum.grpc.stats.user.RecommendedEventProto;
+import ru.yandex.practicum.grpc.stats.user.UserPredictionsRequestProto;
 import util.exception.NotFoundException;
 import event.validation.EventValidationUtils;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,13 +38,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class EventServiceImpl implements EventService {
-    private static final String ENDPOINT = "/events";
-
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final UserClient userClient;
     private final EventStatsService eventStatsService;
     private final CollectorClient collectorClient;
+    private final AnalyzerClient analyzerClient;
+    private final RequestClient requestClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -61,7 +62,6 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findByIdAndInitiator(eventId, userId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
-        //eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
         return eventStatsService.enrichEventFullDto(event, eventMapper);
     }
 
@@ -115,8 +115,6 @@ public class EventServiceImpl implements EventService {
         List<Event> events = eventRepository.findAll(spec, pageable).getContent();
         List<EventShortDto> result = eventStatsService.enrichEventsShortDtoBatch(events, eventMapper);
 
-        //eventStatsService.recordHit(ENDPOINT, ip);
-
         return sortEvents(result, requestParams.getSort());
     }
 
@@ -127,22 +125,9 @@ public class EventServiceImpl implements EventService {
                 .filter(e -> EventState.PUBLISHED.toString().equals(e.getState()))
                 .orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
 
-       // eventStatsService.recordHit(ENDPOINT + "/" + eventId, ip);
         try {
-            Instant ts = Instant.now();
-            UserActionProto userAction = UserActionProto.newBuilder()
-                    .setUserId(userId)
-                    .setEventId(eventId)
-                    .setActionType(ActionTypeProto.ACTION_VIEW)
-                    .setTimestamp(Timestamp.newBuilder()
-                            .setSeconds(ts.getEpochSecond())
-                            .setNanos(ts.getNano())
-                            .build()
-                    )
-                    .build();
-
-            log.info("Sending user action: {}", userAction);
-            collectorClient.sendUserAction(userAction);
+            log.info("Sending user {} view for event {}", userId, eventId);
+            collectorClient.saveView(userId, eventId);
         } catch (RuntimeException e) {
             log.error("Sending user action failed", e);
         }
@@ -159,10 +144,61 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventFullDto> getEvents(Set<Long> ids) {
-        return eventStatsService.enrichEventsFullDto(ids, eventMapper);
+    public List<EventFullDto> getEvents(Set<Long> ids, Map<Long, Double> ratings) {
+        return eventStatsService.enrichEventsFullDto(ids, eventMapper, ratings);
     }
 
+    @Override
+    public List<EventFullDto> getRecommendations(Long userId, Integer limit) {
+        Map<Long, Double> recs = new LinkedHashMap<>();
+        try {
+            log.info("Getting recommendations for user {}", userId);
+            recs = analyzerClient.getRecommendationsForUser(UserPredictionsRequestProto.newBuilder()
+                                    .setUserId(userId)
+                                    .setMaxResults(limit)
+                                    .build()
+                            )
+                            .collect(Collectors.toMap(
+                                    RecommendedEventProto::getEventId,
+                                    RecommendedEventProto::getScore
+                                    )
+                            );
+        } catch (RuntimeException e) {
+            log.error("Getting recommendations failed", e);
+        }
+
+        if (!recs.isEmpty()) {
+            return getEvents(recs.keySet(), recs);
+        }
+
+        return List.of();
+    }
+
+    @Override
+    public void setLike(Long eventId, Long userId) {
+        List<ParticipationRequestDto> userRequests = requestClient.getRequestsByUserId(userId);
+        if (userRequests.isEmpty()) {
+            log.info("User {} has no requests for event {}", userId, eventId);
+            throw new ValidationException("Ставить лайки можно только на посещенные мероприятия");
+        }
+
+        boolean hasConfirmedVisit = userRequests.stream()
+                .anyMatch(req ->
+            req.getEvent().equals(eventId) && req.getStatus().equals(RequestStatus.CONFIRMED.name())
+        );
+
+        if (!hasConfirmedVisit) {
+            log.info("User {} has no confirmed requests for event {}", userId, eventId);
+            throw new ValidationException("Ставить лайки можно только на посещенные мероприятия");
+        }
+
+        try {
+            log.info("Sending like from user {} for event {}", userId, eventId);
+            collectorClient.saveLike(userId, eventId);
+        } catch (RuntimeException e) {
+            log.error("Sending like failed", e);
+        }
+    }
 
     private Specification<Event> buildPublicEventsSpecification(PublicEventSearchRequest params) {
         Specification<Event> spec = Specification.where(EventSpecifications.isPublished());
