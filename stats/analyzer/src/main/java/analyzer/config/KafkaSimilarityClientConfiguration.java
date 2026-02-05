@@ -22,7 +22,7 @@ public class KafkaSimilarityClientConfiguration {
 
     @Bean
     @Scope("prototype")
-    AnalyzerSimilarityKafkaClient kafkaClient() {
+    AnalyzerSimilarityKafkaClient kafkaSimilarityClient() {
         return new AnalyzerSimilarityKafkaClient() {
             private Consumer<Void, EventSimilarityAvro> consumer;
 

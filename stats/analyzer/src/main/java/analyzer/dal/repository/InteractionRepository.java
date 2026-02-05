@@ -11,8 +11,8 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
 
     @Query("""
         select
-             i.eventId,
-             sum(i.rating)
+             i.eventId as eventId,
+             sum(i.rating) as sum
         from Interaction i
              where i.eventId in :eventIds
         group by i.eventId

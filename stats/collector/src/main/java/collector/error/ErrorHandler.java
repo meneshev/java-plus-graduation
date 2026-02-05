@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//TODO уточнить как перехватывать ошибки возникшие по GRPC
 
 @Slf4j
 @RestControllerAdvice

@@ -7,15 +7,14 @@ import analyzer.dal.repository.InteractionRepository;
 import analyzer.dal.repository.SimilarityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.practicum.ewm.stats.avro.ActionTypeAvro;
 import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 
 import java.time.ZoneOffset;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,44 +26,90 @@ public class AnalyzerServiceImpl implements AnalyzerService {
 
     @Override
     public Map<Long, Double> getInteractionsCount(List<Long> eventIds) {
-        return interactionRepository.getInteractionRating(eventIds).stream()
-                .collect(
-                        Collectors.toMap(EventRatingSum::getEventId, EventRatingSum::getSum)
-                );
+        if (eventIds == null || eventIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<EventRatingSum> rows = interactionRepository.getInteractionRating(eventIds);
+        if (rows == null ||  rows.isEmpty()) {
+            log.info("No interactions found for {} eventIds", eventIds.size());
+            return Map.of();
+        }
+
+        Map<Long, Double> result = rows.stream()
+                .filter(Objects::nonNull)
+                .filter(r -> r.getEventId() != null && r.getSum() != null)
+                .collect(Collectors.toMap(EventRatingSum::getEventId, EventRatingSum::getSum));
+
+        log.info("Interactions count calculated for {} events (requestedIds={})", result.size(), eventIds.size());
+        return result;
     }
 
     @Override
     public Map<Long, Double> getSimilarEvents(Long eventId, Long userId, Integer limit) {
+        if (eventId == null || userId == null || limit == null || limit <= 0) {
+            return Map.of();
+        }
+
         List<Long> interactedEventIds = interactionRepository.findAllInteractedEventsByUserId(userId, limit);
-        List<Similarity> similarities = similarityRepository.getSimilarEvents(interactedEventIds, List.of(eventId), limit);
-        return similarities.stream()
+
+        List<Similarity> similarities = similarityRepository.findSimilarNotInteracted(
+                interactedEventIds,
+                eventId,
+                PageRequest.of(0, limit)
+        );
+
+        Map<Long, Double> result = similarities.stream()
                 .collect(Collectors.toMap(
                         s -> s.getEvent1().equals(eventId) ? s.getEvent2() : s.getEvent1(),
                         Similarity::getSimilarity,
-                        Math::max,
+                        (a, b) -> a,
                         LinkedHashMap::new
                 ));
+
+        log.info("Similar events for eventId={} userId={} -> {} results", eventId, userId, result.size());
+
+        return result;
     }
 
     @Override
     public Map<Long, Double> getRecommendations(Long userId, Integer limit) {
-        List<Long> interactedEventIds = interactionRepository.findAllInteractedEventsByUserId(userId, limit);
-        if (interactedEventIds.isEmpty()) {
+        if (userId == null || limit == null || limit <= 0) {
             return Map.of();
         }
 
-        List<Similarity> candidates = similarityRepository.getNotInteractedEvents(interactedEventIds, limit);
+        List<Long> interactedEventIds = interactionRepository.findAllInteractedEventsByUserId(userId, limit);
+
+        if (interactedEventIds.isEmpty()) {
+            log.info("No interactions found for userId={}, returning empty recommendations", userId);
+            return Map.of();
+        }
+
+        List<Similarity> candidates = similarityRepository.getNotInteractedEvents(
+                interactedEventIds,
+                PageRequest.of(0, limit)
+        );
 
         Map<Long, Double> recommendations = new LinkedHashMap<>();
 
+        log.info("Building recommendations: userId={}, limit={}, recentInteractions={}, candidatesFetched={}",
+                userId, limit, interactedEventIds.size(), candidates.size());
+
         for (Similarity similarity : candidates) {
-            Long candidateEvnId = interactedEventIds.contains(similarity.getEvent1()) ? similarity.getEvent2() : similarity.getEvent1();
+            Long candidateEvnId = interactedEventIds.contains(similarity.getEvent1())
+                    ? similarity.getEvent2()
+                    : similarity.getEvent1();
 
             if (interactedEventIds.contains(candidateEvnId) || recommendations.containsKey(candidateEvnId)) {
                 continue;
             }
 
             double possibleRating = getPossibleRating(candidateEvnId, userId, interactedEventIds);
+
+            if (possibleRating < 0.0) {
+                continue;
+            }
+
             recommendations.put(candidateEvnId, possibleRating);
 
             if (recommendations.size() >= limit) {
@@ -72,14 +117,22 @@ public class AnalyzerServiceImpl implements AnalyzerService {
             }
         }
 
+        log.info("Recommendations built: userId={}, requestedLimit={}, actualReturned={}",
+                userId, limit, recommendations.size());
+
         return recommendations;
     }
 
     private double getPossibleRating(Long candidateEvnId, Long userId, List<Long> interactedEventIds) {
-        List<Similarity> interacted = similarityRepository.findInteractedEvents(candidateEvnId, interactedEventIds);
+        List<Similarity> interacted = similarityRepository.findInteractedEvents(
+                candidateEvnId,
+                interactedEventIds,
+                PageRequest.of(0, 10)
+        );
 
         if (interacted.isEmpty()) {
-            return 0.0;
+            log.info("No interacted events for candidateEventId={} userId={}, skip", candidateEvnId, userId);
+            return -1.0;
         }
 
         Map<Long, Double> similarities = interacted.stream()
@@ -94,7 +147,13 @@ public class AnalyzerServiceImpl implements AnalyzerService {
                 interactionRepository.findByUserIdAndEventIds(userId, similarities.keySet().stream().toList());
 
         Map<Long, Double> ratings = interactions.stream()
-                .collect(Collectors.toMap(Interaction::getEventId, Interaction::getRating));
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        Interaction::getEventId,
+                        Interaction::getRating,
+                        (a, b) -> a
+                ));
+
 
         double weightedSum = 0.0;
         double simSum = 0.0;
@@ -109,7 +168,17 @@ public class AnalyzerServiceImpl implements AnalyzerService {
             simSum += sim;
         }
 
-        return simSum == 0.0 ? 0.0 : (weightedSum / simSum);
+        if (simSum == 0.0) {
+            log.info("Similarity sum is 0 for candidateEventId={} userId={}, skip", candidateEvnId, userId);
+            return -1.0;
+        }
+
+        double result = weightedSum / simSum;
+
+        log.info("Predicted rating: userId={}, candidateEventId={}, predicted={}, simSum={}, similarities={}",
+                userId, candidateEvnId, result, simSum, similarities.size());
+
+        return result;
     }
 
 
@@ -135,8 +204,13 @@ public class AnalyzerServiceImpl implements AnalyzerService {
 
     @Override
     public void processUserAction(UserActionAvro userActionAvro) {
-        Interaction interaction = interactionRepository.findInteractionByUserIdAndEventId(userActionAvro.getUserId(), userActionAvro.getEventId());
+        Interaction interaction = interactionRepository.findInteractionByUserIdAndEventId(
+                userActionAvro.getUserId(),
+                userActionAvro.getEventId()
+        );
+
         double newRating = getWeight(userActionAvro.getActionType());
+
         if (interaction != null) {
             if (interaction.getRating() < newRating) {
                 interaction.setRating(newRating);

@@ -32,7 +32,7 @@ public class PublicEventController {
         return ResponseEntity.ok(events);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{eventId}")
     public ResponseEntity<EventFullDto> getEvent(@PathVariable Long eventId,
                                                  @RequestHeader(name = "X-EWM-USER-ID") Long userId) {
         EventFullDto event = eventService.getPublicEventById(eventId, userId);

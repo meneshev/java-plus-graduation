@@ -22,7 +22,7 @@ public class KafkaUserActionsClientConfiguration {
 
     @Bean
     @Scope("prototype")
-    AnalyzerUserActionsKafkaClient kafkaClient() {
+    AnalyzerUserActionsKafkaClient kafkaUserActionsClient() {
         return new AnalyzerUserActionsKafkaClient() {
             private Consumer<Void, UserActionAvro> consumer;
 

@@ -29,6 +29,10 @@ public class AggregatorStarter {
 
     public void start() {
         Runtime.getRuntime().addShutdownHook(new Thread(kafkaClient.getConsumer()::wakeup));
+        log.info("Aggregator started. Consuming topic='{}', producing topic='{}'",
+                kafkaProperties.getTopics().getUserActions(),
+                kafkaProperties.getTopics().getEventsSimilarity());
+
         try {
             while (true) {
                 List<EventSimilarityAvro> userActions = process(kafkaClient.getConsumer().poll(kafkaProperties.getConsumer().getTimeoutMs()));
@@ -45,7 +49,7 @@ public class AggregatorStarter {
         } catch (WakeupException ignore) {
 
         } catch (Exception e) {
-            log.error("Error during process topic:{}", kafkaProperties.getTopics().getUserActions(), e);
+            log.error("Error during process topic:{}", kafkaProperties.getTopics().getEventsSimilarity(), e);
         } finally {
             try {
                 kafkaClient.getProducer().flush();
@@ -67,13 +71,13 @@ public class AggregatorStarter {
 
             if (eventUserWeights.containsKey(eventId_A)) {
                 Map<Long, Double> eventAUserWeights = eventUserWeights.get(eventId_A);
-                Double oldWeight = eventAUserWeights.get(userId);
-                Double newWeight = Math.max(oldWeight, eventA_w);
+                double oldWeight = eventAUserWeights.getOrDefault(userId, 0.0);
+                double newWeight = Math.max(oldWeight, eventA_w);
 
-                if (!newWeight.equals(oldWeight)) {
-                    eventAUserWeights.put(eventId_A, newWeight);
+                if (newWeight != oldWeight) {
+                    eventAUserWeights.put(userId, newWeight);
                     double delta = newWeight - oldWeight;
-                    eventWeightsSum.put(eventId_A, eventWeightsSum.get(eventId_A) + delta);
+                    eventWeightsSum.put(eventId_A, eventWeightsSum.getOrDefault(eventId_A, 0.0) + delta);
 
                     for (Long eventId_B : eventUserWeights.keySet()) {
                         if (!eventId_A.equals(eventId_B)) {
@@ -88,9 +92,12 @@ public class AggregatorStarter {
                                 double sqrtWeightsSumB = Math.sqrt(eventWeightsSum.get(eventId_B));
                                 double score = S_min / (sqrtWeightsSumA * sqrtWeightsSumB);
 
+                                long first = Math.min(eventId_A, eventId_B);
+                                long second = Math.max(eventId_A, eventId_B);
+
                                 eventsSimilarities.add(EventSimilarityAvro.newBuilder()
-                                        .setEventA(eventId_A)
-                                        .setEventB(eventId_B)
+                                        .setEventA(first)
+                                        .setEventB(second)
                                         .setScore(score)
                                         .setTimestamp(Instant.now())
                                         .build()
@@ -100,7 +107,7 @@ public class AggregatorStarter {
                     }
                 }
             } else { // новое мероприятие
-                eventsSimilarities = newEventInteraction(userId, eventId_A, eventA_w);
+                eventsSimilarities.addAll(newEventInteraction(userId, eventId_A, eventA_w));
             }
         }
         return eventsSimilarities;
@@ -108,15 +115,15 @@ public class AggregatorStarter {
 
     private List<EventSimilarityAvro> newEventInteraction(Long userId, Long eventId_A, double eventA_w) {
         log.info("New event interaction for userId: {}, eventId: {}", userId, eventId_A);
-        eventUserWeights.computeIfAbsent(userId, k -> new HashMap<>(Map.of(userId, eventA_w)));
+        eventUserWeights.computeIfAbsent(eventId_A, k -> new HashMap<>(Map.of(userId, eventA_w)));
         eventWeightsSum.put(eventId_A, eventA_w);
         List<EventSimilarityAvro> eventSimilarities = new ArrayList<>();
 
         for (Map.Entry<Long, Map<Long, Double>> entry : eventUserWeights.entrySet()) {
             long eventId_B = entry.getKey();
             if (eventId_A != eventId_B) {
-                Double eventB_w = entry.getValue().get(userId);
-                if (eventB_w != null) {
+                Double eventB_w = entry.getValue().getOrDefault(userId, 0.0);
+                if (eventB_w != 0.0) {
                     double S_min = Math.min(eventA_w, eventB_w);
                     minEventWeightSum.put(eventId_A, eventId_B, S_min);
 
@@ -124,9 +131,12 @@ public class AggregatorStarter {
                     double sqrtWeightsSumB = Math.sqrt(eventWeightsSum.get(eventId_B));
                     double score = S_min / (sqrtWeightsSumA * sqrtWeightsSumB);
 
+                    long first = Math.min(eventId_A, eventId_B);
+                    long second = Math.max(eventId_A, eventId_B);
+
                     eventSimilarities.add(EventSimilarityAvro.newBuilder()
-                            .setEventA(eventId_A)
-                            .setEventB(eventId_B)
+                            .setEventA(first)
+                            .setEventB(second)
                             .setScore(score)
                             .setTimestamp(Instant.now())
                             .build()
