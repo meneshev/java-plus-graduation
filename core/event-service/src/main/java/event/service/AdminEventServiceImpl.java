@@ -136,6 +136,4 @@ public class AdminEventServiceImpl implements AdminEventService {
             throw new ConflictException("Событие можно отклонить, только если оно еще не опубликовано");
         }
     }
-
-    //TODO enrich from ohter services
 }

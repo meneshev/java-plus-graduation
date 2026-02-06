@@ -1,6 +1,7 @@
 package request.service;
 
 
+import client.CollectorClient;
 import dto.event.EventFullDto;
 import dto.request.EventRequestStatusUpdateRequest;
 import dto.request.EventRequestStatusUpdateResult;
@@ -12,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import request.dal.entity.ParticipationRequest;
-import request.dal.entity.RequestStatus;
+import enums.RequestStatus;
 import request.dal.mapper.ParticipationRequestMapper;
 import request.dal.repository.ParticipationRequestRepository;
 import util.exception.ConflictException;
@@ -33,6 +34,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
     private final UserClient userClient;
     private final EventClient eventClient;
     private final ParticipationRequestMapper requestMapper;
+    private final CollectorClient collectorClient;
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
@@ -95,6 +97,13 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
         ParticipationRequest savedRequest = requestRepository.save(request);
         log.info("Запрос создан с id: {}", savedRequest.getId());
+
+        try {
+            log.info("Sending user {} registration for event: {}", userId, eventId);
+            collectorClient.saveReg(userId, eventId);
+        } catch (RuntimeException e) {
+            log.error("Sending user action failed", e);
+        }
 
         return requestMapper.toDto(savedRequest);
     }

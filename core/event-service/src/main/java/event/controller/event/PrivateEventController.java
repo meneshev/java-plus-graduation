@@ -42,9 +42,8 @@ public class PrivateEventController {
 
     @GetMapping("/{userId}/events/{eventId}")
     public EventFullDto getEvent(@PathVariable("userId") Long userId,
-                                 @PathVariable("eventId") Long eventId,
-                                 HttpServletRequest request) {
-        return eventService.getEvent(userId, eventId, request.getRemoteAddr());
+                                 @PathVariable("eventId") Long eventId) {
+        return eventService.getEvent(userId, eventId);
     }
 
     @PatchMapping("/{userId}/events/{eventId}")
